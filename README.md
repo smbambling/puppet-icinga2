@@ -237,6 +237,33 @@ class { 'icinga2::server':
 
 This will stop the `icinga2::server` class from trying to install the plugins pacakges, since the `icinga2::nrpe` class will already be installing them and will prevent a resulting duplicate resource error.
 
+### Check Plugins
+
+Agents installed on nodes (such as NRPE ) that Icinga is performing Active checks against often require additional or custom check plugins. In order to deploy these check pluings on a node you can call the checkplugin defined resource.
+
+The checkplugin defined resource can distribute files via both content (templates) and source (files).  By default the checkpluin resource will assume your distribution method is content (template) and that your template resides in the icinga2 module
+
+To reference a template that resides in another module you can update the $checkplugin_template_module  parameter with the module your template resides
+
+````
+$checkplugin_template_module => 'SomeModule',
+````
+
+Example 1: Distribute check plugin that is a template
+````
+icinga2::checkplugin { 'check_diskstats':
+  checkplugin_template => 'checkplugins/check_diskstats.erb',
+}
+````
+
+Example 2: Distribute check plugin that is a static file
+````
+icinga2::checkplugin { 'check_diskstats':
+  checkplugin_file_distribution_method => 'source',
+  checkplugin_source_file              => 'puppet:///modules/checkplugins/check_diskstats',
+}
+````
+
 ###[Object type usage](id:object_type_usage)
 
 This module includes several defined types that can be used to automatically generate Icinga 2 format object definitions. They function in a similar way to [the built-in Nagios types that are included in Puppet](http://docs.puppetlabs.com/guides/exported_resources.html#exported-resources-with-nagios).
@@ -303,10 +330,12 @@ Object types:
 
 * [icinga2::object::apply_service_to_host](#object_apply_service_to_host)
 * [icinga2::object::checkcommand](#object_checkcommand)
+* [icinga2::object::eventcommand](id:object_eventcommand)
 * [icinga2::object::host](id:object_host)
 * [icinga2::object::hostgroup](id:object_hostgroup)
 * [icinga2::object::idomysqlconnection](id:object_idomysqlconnection)
 * [icinga2::object::idopgsqlconnection](id:object_idopgsqlconnection)
+* [icinga2::object::notificationcommand](id:object_notificationcommand)
 * [icinga2::object::service](id:object_service)
 * [icinga2::object::servicegroup](id:object_servicegroup)
 * [icinga2::object::syslogger](id:object_syslogger)
@@ -399,6 +428,20 @@ Available parameters are:
 * `target_file_owner`
 * `target_file_group`
 * `target_file_mode`
+
+####`icinga2::object::eventcommand`
+
+The `eventcommand` defined type can create `eventcommand` objects.
+
+<pre>
+#Create the http restart command:
+icinga2::object::eventcommand { 'restart-httpd-event':
+  command => [ '"/opt/bin/restart-httpd.sh"' ]
+}
+
+</pre>
+
+This object use the same parameter defined to `checkcommand`.
 
 ####[`icinga2::object::host`](id:object_host)
 
@@ -508,6 +551,35 @@ All other parameters are given as [single-quoted strings](https://docs.puppetlab
 This defined type supports all of the parameters that **IdoMySqlConnection** objects have available.
 
 See [IdoPgSqlConnection](http://docs.icinga.org/icinga2/latest/doc/module/icinga2/chapter/configuring-icinga2#objecttype-idopgsqlconnection) on [docs.icinga.org](http://docs.icinga.org/icinga2/latest/doc/module/icinga2/toc) for a full list of parameters.
+
+####`icinga2::object::notificationcommand`
+
+The `notificationcommand` defined type can create `notificationcommand` objects.
+
+<pre>
+#Create the mail notification command:
+icinga2::object::notificationcommand { 'mail-service-notification':
+  command   => ['"/icinga2/scripts/mail-notification.sh"'],
+  cmd_path  => 'SysconfDir',
+  env       => {
+    'NOTIFICATIONTYPE'  => '"$notification.type$"',
+    'SERVICEDESC' => '"$service.name$"',
+    'HOSTALIAS' => '"$host.display_name$"',
+    'HOSTADDRESS' => '"$address$"',
+    'SERVICESTATE' => '"$service.state$"',
+    'LONGDATETIME' => '"$icinga.long_date_time$"',
+    'SERVICEOUTPUT' => '"$service.output$"',
+    'NOTIFICATIONAUTHORNAME' => '"$notification.author$"',
+    'NOTIFICATIONCOMMENT' => '"$notification.comment$"',
+    'HOSTDISPLAYNAME' => '"$host.display_name$"',
+    'SERVICEDISPLAYNAME' => '"$service.display_name$"',
+    'USEREMAIL' => '"$user.email$"'
+  }
+}
+
+</pre>
+
+This oobject use the same parameter defined to `checkcommand`.
 
 ####[`icinga2::object::service`](id:object_service)
 
